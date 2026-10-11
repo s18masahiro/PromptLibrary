@@ -49,8 +49,11 @@ Every later call: same `export` and `cd`, then
    date, so their year may be wrong (e.g. the date they were copied or exported).
    If the pass rate looks wrong (e.g. almost everything rejected as `soft_focus`),
    suggest a threshold change in `config.local.toml` and re-run `select` (no rescan needed).
-4. `ss sheets` - renders `sheets/sheet_NNN.jpg` (20 numbered tiles each) and `sheets/index.csv`.
-   Files that already have a decision are skipped, so re-running resumes the review.
+4. `ss sheets --time-budget 150` - repeat until it prints `SHEETS COMPLETE`
+   (exit code 3 = time budget hit, just run it again; finished sheets are kept).
+   Renders `sheets/sheet_NNN.jpg` (20 numbered tiles each) and `sheets/index.csv`.
+   Files that already have a decision are skipped, so re-running after `mark` resumes the
+   review (this renumbers the sheets - always start from a fresh `ss status`).
 
 ## 2. Visual review
 

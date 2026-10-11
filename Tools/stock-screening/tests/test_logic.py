@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from stock_screening import config, inventory, metrics, review
+from stock_screening import config, inventory, metrics, review, selection, sheets
 
 
 def test_ids_roundtrip():
@@ -58,9 +58,46 @@ def test_exclude_globs():
     assert not inventory.is_excluded("Camera/IMG_0001.jpg", globs)
 
 
+def test_sheets_resume():
+    with tempfile.TemporaryDirectory() as tmp:
+        photos, out = Path(tmp, "photos"), Path(tmp, "out")
+        photos.mkdir()
+        data = config._read_toml(config.DEFAULT_CONFIG)
+        data["sheets"].update(columns=1, rows=1, tile_px=64)  # one tile per sheet
+        cfg = config.Config(photos, out, data)
+        with open(cfg.year_dir("2020") / selection.SCREEN_NAME, "w", encoding="utf-8") as fh:
+            fh.write("relpath,status,kind,captured_at\n")
+            for i in range(3):
+                Image.new("RGB", (8, 8)).save(photos / f"{i}.jpg")
+                fh.write(f"{i}.jpg,pass,jpeg,2020-01-0{i + 1}T00:00:00\n")
+        out_sheets = sheets.sheets_dir(cfg, "2020")
+
+        assert sheets.run(cfg, "2020", time_budget=1e-9, workers=1) == 3  # budget hit at once
+        assert sheets.rendered(cfg, "2020") == set()
+        assert sheets.run(cfg, "2020", workers=1) == 0
+        assert sheets.rendered(cfg, "2020") == {"sheet_001.jpg", "sheet_002.jpg", "sheet_003.jpg"}
+
+        # Same index: only sheets missing from rendered.txt are drawn again.
+        (out_sheets / "rendered.txt").write_text("sheet_001.jpg\nsheet_003.jpg\n")
+        for name in ("sheet_001.jpg", "sheet_002.jpg"):
+            os.utime(out_sheets / name, (0, 0))
+        assert sheets.run(cfg, "2020", workers=1) == 0
+        assert (out_sheets / "sheet_001.jpg").stat().st_mtime == 0
+        assert (out_sheets / "sheet_002.jpg").stat().st_mtime > 0
+
+        # A decision changes the index: everything is re-rendered, stale sheet removed.
+        review.mark(cfg, "2020", "1", "reject", [], "")
+        os.utime(out_sheets / "sheet_001.jpg", (0, 0))
+        assert sheets.run(cfg, "2020", workers=1) == 0
+        assert (out_sheets / "sheet_001.jpg").stat().st_mtime > 0
+        assert sorted(sheets.read_index(cfg, "2020")) == ["0001", "0002"]
+        assert not (out_sheets / "sheet_003.jpg").exists()
+
+
 if __name__ == "__main__":
     test_ids_roundtrip()
     test_stem_grouping()
     test_capture_date()
     test_exclude_globs()
+    test_sheets_resume()
     print("ok")

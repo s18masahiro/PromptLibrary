@@ -51,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp = add("sheets", "step 2a: render numbered contact sheets of passing files")
     sp.add_argument("--include-reviewed", action="store_true",
                     help="also include files that already have a review decision")
+    sp.add_argument("--time-budget", type=float, default=0,
+                    help="stop after N seconds with exit code 3; re-run to continue")
+    sp.add_argument("--workers", type=int, default=0, help="worker processes (default: CPUs)")
 
     sp = add("mark", "step 2b: record a decision for sheet IDs")
     sp.add_argument("--ids", required=True, help="e.g. '1-4,9,12'")
@@ -80,7 +83,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "select":
             return selection.run(cfg, args.year)
         if args.command == "sheets":
-            return sheets.run(cfg, args.year, args.include_reviewed)
+            return sheets.run(cfg, args.year, args.include_reviewed, args.time_budget,
+                              args.workers)
         if args.command == "mark":
             return review.mark(cfg, args.year, args.ids, args.decision, args.flags, args.note)
         if args.command == "status":

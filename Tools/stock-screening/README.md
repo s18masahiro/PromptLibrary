@@ -70,6 +70,8 @@ uv run stock-screening export --year 2019 --decision candidate --path-prefix /Us
 - `scan --time-budget N` stops after N seconds with exit code 3; run it again to continue.
   The cache is append-only, so interruption is always safe.
 - `select` is cheap: change thresholds and re-run without rescanning.
+- `sheets --time-budget N` works like `scan`: exit code 3 means run it again; finished
+  sheets are kept as long as the set of files to show is unchanged.
 - `sheets` skips files that already have a decision (`--include-reviewed` to show all).
   Decisions are keyed by file path, so renumbered tiles never break earlier reviews.
 - Flags: `people logo text landmark artwork private focus noise similar composition`.
@@ -82,6 +84,7 @@ uv run stock-screening export --year 2019 --decision candidate --path-prefix /Us
 ├─ screen.csv             pass/reject + reasons for every file of the year
 ├─ sheets/sheet_NNN.jpg   numbered contact sheets
 ├─ sheets/index.csv       tile ID -> file
+├─ sheets/rendered.txt    sheets finished for the current index.csv (resume state)
 ├─ review.csv             decisions (candidate / review / reject), flags, notes
 ├─ export_<decision>.txt  plain file list (alternative to the plug-in)
 └─ lightroom_unmatched.txt  written by the Lightroom plug-in: files not found in the catalog
@@ -206,7 +209,7 @@ uv run stock-screening export --year 2019 --path-prefix /Users/you/Pictures/RAW_
 
 - `--year` は**撮影年**です。EXIF の撮影日時（DateTimeOriginal → DateTimeDigitized → DateTime）を使い、ない場合はファイルの更新日時（mtime）で代用します。どちらを使ったかは `screen.csv` の `date_source` 列（`exif` / `mtime`）に記録され、`status` には対象年のうち mtime で判定した件数が表示されます。
 - `scan` は 2 段階で動きます。(1) アーカイブ全体の新規・変更ファイルについて撮影日時だけを読み（軽量）、(2) 対象年のファイルだけプレビューを解析します。初回はアーカイブ全体を読むため、何度か再実行が必要になることがあります。
-- `scan` は中断しても再実行すれば続きから処理します（`--time-budget` で時間制限可）。
+- `scan` と `sheets` は中断しても再実行すれば続きから処理します（`--time-budget` で時間制限可）。
 - 除外したいフォルダ（Lightroom のプレビュー、書き出し先など）は `config.local.toml` の `[inventory]` に `exclude_globs = ["*.lrdata", "Exports"]` のように指定します（写真フォルダからの相対パスの glob。一致したフォルダは中身ごと除外）。隠しファイル・隠しフォルダは常に除外されます。
 - 同じフォルダ内で基本ファイル名が同じもの（RAW+JPEG、`LRG_` コピー、`-Enhanced-NR` などの派生）は 1 枚にまとめます。
 - しきい値は `config.local.toml` で上書きし、`select` だけ再実行すれば反映されます。

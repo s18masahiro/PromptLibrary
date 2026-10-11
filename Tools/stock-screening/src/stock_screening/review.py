@@ -130,7 +130,9 @@ def status(cfg: Config, year: str) -> int:
         return 0
     pending = [int(i) for i, row in index.items() if row["relpath"] not in rows]
     n_sheets = len({row["sheet"] for row in index.values()})
-    print(f"  sheets           {n_sheets} sheets, IDs 0001-{len(index):04d}")
+    n_done = len(sheets.rendered(cfg, year))
+    print(f"  sheets           {n_sheets} sheets, IDs 0001-{len(index):04d}"
+          + (f"  ({n_done} rendered - run sheets)" if n_done < n_sheets else ""))
     print(f"  not yet reviewed {len(pending)}" + (f"  IDs {compress_ids(pending)}" if pending else ""))
     return 0
 
