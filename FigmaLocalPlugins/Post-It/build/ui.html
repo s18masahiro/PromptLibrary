@@ -1,0 +1,67 @@
+<style>
+  body { margin: 0; padding: 12px; font: 12px/1.4 Inter, sans-serif; color: var(--figma-color-text); background: var(--figma-color-bg); }
+  h2 { font-size: 11px; font-weight: 600; margin: 0 0 8px; color: var(--figma-color-text-secondary); }
+  section + section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--figma-color-border); }
+  label { display: block; margin-bottom: 8px; }
+  input, textarea { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 6px; font: inherit; color: inherit; background: var(--figma-color-bg); border: 1px solid var(--figma-color-border); border-radius: 4px; }
+  textarea { height: 64px; resize: vertical; }
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-bottom: 8px; }
+  .swatches button { aspect-ratio: 1; border: 1px solid rgba(0,0,0,.15); border-radius: 4px; cursor: pointer; padding: 0; }
+  .swatches button[aria-pressed="true"] { outline: 2px solid var(--figma-color-border-selected); outline-offset: 1px; }
+  .swatches button:disabled { opacity: .4; cursor: default; }
+  #create { width: 100%; padding: 8px; border: 0; border-radius: 6px; font: inherit; font-weight: 600; color: var(--figma-color-text-onbrand); background: var(--figma-color-bg-brand); cursor: pointer; }
+  #hint { color: var(--figma-color-text-secondary); margin: 0; }
+</style>
+
+<section>
+  <h2>新規作成</h2>
+  <label>ラベル<input id="label" value="memo" /></label>
+  <label>本文<textarea id="body" placeholder="Enter Text..."></textarea></label>
+  <div class="swatches" id="newColors" role="group" aria-label="カラー"></div>
+  <button id="create">生成</button>
+</section>
+
+<section>
+  <h2>選択中のポストイット</h2>
+  <div class="swatches" id="editColors" role="group" aria-label="カラー変更"></div>
+  <p id="hint">ポストイットを選択するとカラーを変更できます</p>
+</section>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let newColor = null;
+
+  function renderSwatches(el, presets, onClick) {
+    el.innerHTML = '';
+    for (const p of presets) {
+      const b = document.createElement('button');
+      b.style.background = '#' + p.hex;
+      b.title = b.ariaLabel = p.name;
+      b.dataset.hex = p.hex;
+      b.onclick = () => onClick(p.hex);
+      el.appendChild(b);
+    }
+  }
+
+  function mark(el, hex) {
+    for (const b of el.children) b.ariaPressed = String(b.dataset.hex === hex);
+  }
+
+  onmessage = ({ data: { pluginMessage: msg } }) => {
+    if (msg.type === 'init') {
+      newColor = msg.presets[0].hex;
+      renderSwatches($('newColors'), msg.presets, (hex) => mark($('newColors'), (newColor = hex)));
+      renderSwatches($('editColors'), msg.presets, (hex) => parent.postMessage({ pluginMessage: { type: 'recolor', color: hex } }, '*'));
+      mark($('newColors'), newColor);
+    } else if (msg.type === 'selection') {
+      for (const b of $('editColors').children) b.disabled = msg.count === 0;
+      mark($('editColors'), msg.color);
+      $('hint').textContent = msg.count ? `${msg.count} 件選択中` : 'ポストイットを選択するとカラーを変更できます';
+    }
+  };
+
+  $('create').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'create', label: $('label').value, body: $('body').value, color: newColor } }, '*');
+    $('body').value = '';
+  };
+</script>

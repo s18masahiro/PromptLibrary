@@ -5,6 +5,8 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+# Figma plugins: build/ is what gets imported into Figma, so it is committed
+!FigmaLocalPlugins/*/build/
 
 # Personal configuration
 config.local.toml
