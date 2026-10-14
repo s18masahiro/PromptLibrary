@@ -1,3 +1,5 @@
+![Post-It](post-it_readme_cover.png)
+
 # Post-It
 
 ポストイット（付箋）を生成する Figma ローカルプラグインです。
