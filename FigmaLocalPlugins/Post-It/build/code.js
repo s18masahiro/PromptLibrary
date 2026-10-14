@@ -102,6 +102,7 @@ async function create(label, body, hex) {
     const info = hugFrame('info', 'HORIZONTAL');
     info.primaryAxisAlignItems = 'SPACE_BETWEEN';
     info.counterAxisAlignItems = 'CENTER';
+    info.paddingTop = 24;
     postit.appendChild(info);
     info.layoutSizingHorizontal = 'FILL';
     info.appendChild(text('date', today(), 12, '666666'));
