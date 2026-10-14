@@ -10,6 +10,8 @@ module.exports = tseslint.config(
   // tseslint.configs.recommended instead.
   tseslint.configs.recommended,
   {
+    // @figma/figma-plugins の一部ルールは型情報が必要
+    languageOptions: { parserOptions: { projectService: true } },
     plugins: {
       '@figma/figma-plugins': figmaPlugin,
     },

@@ -83,6 +83,7 @@ async function create(label: string, body: string, hex: string) {
   postit.layoutSizingVertical = 'HUG';
   postit.minWidth = 320;
   postit.minHeight = 160;
+  postit.cornerRadius = 8;
   postit.fills = [solid(hex)];
   postit.effects = [
     { type: 'DROP_SHADOW', color: { r: 0, g: 0, b: 0, a: 0.15 }, offset: { x: 0, y: 2 }, radius: 6, spread: 0, visible: true, blendMode: 'NORMAL' },
@@ -146,18 +147,37 @@ function selectedPostIts(): FrameNode[] {
   return [...found];
 }
 
+async function setText(postit: FrameNode, name: string, chars: string) {
+  const t = postit.findOne((n) => n.type === 'TEXT' && n.name === name) as TextNode | null;
+  if (!t) return;
+  await Promise.all(t.getRangeAllFontNames(0, t.characters.length).map(figma.loadFontAsync));
+  t.characters = chars;
+}
+
+async function updateAuthor(postit: FrameNode, avatar: Paint) {
+  const icon = postit.findOne((n) => n.type === 'ELLIPSE' && n.name === 'accountIcon') as EllipseNode | null;
+  if (icon) icon.fills = [avatar];
+  await setText(postit, 'accountName', figma.currentUser?.name ?? 'Unknown');
+}
+
 function onSelection() {
   const postits = selectedPostIts();
   const colors = new Set(postits.map((p) => (p.fills !== figma.mixed ? toHex(p.fills[0]) : null)));
   figma.ui.postMessage({ type: 'selection', count: postits.length, color: colors.size === 1 ? [...colors][0] : null });
 }
 
-figma.showUI(__html__, { width: 280, height: 420, themeColors: true });
+figma.showUI(__html__, { width: 280, height: 500, themeColors: true });
 figma.ui.postMessage({ type: 'init', presets: PRESETS });
 
-figma.ui.onmessage = async (msg: { type: string; label?: string; body?: string; color: string }) => {
-  if (!PRESET_HEXES.includes(msg.color)) return; // プリセット以外の色は受け付けない
-  if (msg.type === 'create') {
+figma.ui.onmessage = async (msg: { type: string; label?: string; body?: string; color?: string }) => {
+  if (msg.type === 'updateDate') {
+    await Promise.all(selectedPostIts().map((p) => setText(p, 'date', today())));
+  } else if (msg.type === 'updateAuthor') {
+    const avatar = await avatarFill();
+    await Promise.all(selectedPostIts().map((p) => updateAuthor(p, avatar)));
+  } else if (!msg.color || !PRESET_HEXES.includes(msg.color)) {
+    return; // プリセット以外の色は受け付けない
+  } else if (msg.type === 'create') {
     await Promise.all(['Regular', 'Bold'].map((style) => figma.loadFontAsync({ family: FONT, style })));
     await create((msg.label ?? '').trim(), msg.body ?? '', msg.color);
   } else if (msg.type === 'recolor') {
