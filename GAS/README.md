@@ -9,4 +9,4 @@
 
 **目次**
 
-- [trashOldMail.gs](trasholdmail/README.md)
+- [trashOldMail.gs](trashOldMail/README.md)
