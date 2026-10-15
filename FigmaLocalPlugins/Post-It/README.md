@@ -1,4 +1,4 @@
-![Post-It](post-it_readme_cover.png)
+![Post-It](readme_cover.png)
 
 # Post-It
 
